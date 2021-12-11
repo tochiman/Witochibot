@@ -112,4 +112,4 @@ async def channel(ctx, channel:discord.Option(discord.TextChannel, "Channel(Text
 '''
 
 bot.remove_command('help')
-bot.run("ODk5MTI1NzA0ODMzMjU3NTEy.YWuOEA.T8pSvpqzwsWcPQlnVytSfhvMUp4")
+bot.run()
