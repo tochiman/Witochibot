@@ -1,8 +1,8 @@
 #call module
+#call module
 from os import name
 import discord
-from discord import message
-from discord import client
+from discord import message, client
 from discord.client import Client
 from discord.ext.commands.core import check
 from discord_slash import SlashCommand,SlashContext
@@ -10,6 +10,9 @@ from discord.ext import commands
 import sqlite3
 import asyncio
 import datetime
+import json
+import db_cursor
+import discord_token
 
 from discord_slash.dpy_overrides import send_message
 
@@ -29,9 +32,6 @@ bot=commands.Bot(command_prefix='/',
 )
 
 client = discord.Client()
-
-def check(msg):
-    return msg.author == message.author
 
 '''
 @bot.event
@@ -102,14 +102,10 @@ async def on_message(message:discord.Message):
 
 
 '''
-@bot.slash_command(name='send',description='指定したチャンネルに送信',guild_ids=[807953798894714960])
-async def send(ctx,after_channel:discord.Option(discord.TextChannel,"Channel(Text)",required="True")):
-    await after_channel.send("hello")
-
 @bot.slash_command(name="VoiceChannel", description="voice channel called", guild_ids=[807953798894714960])
 async def channel(ctx, channel:discord.Option(discord.TextChannel, "Channel(Text)", required=True)):#, default=None, choices=["1","2","いっぱい"]
     await ctx.respond(content=channel.mention)
 '''
 
 bot.remove_command('help')
-bot.run()
+bot.run(discord_token.token())
