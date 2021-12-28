@@ -25,7 +25,6 @@ bot=commands.Bot(command_prefix='/',
                 help_command=None,
                 activity=discord.Game("test") 
 )
-
 client = discord.Client()
 
 def random_rgb():
@@ -42,12 +41,9 @@ def random_rgb():
         g=136
         b=237
         return r,g,b
-
 #ランダムなrgb値返す関数
 rgb_result = random_rgb()
-
 now = datetime.datetime.now()
-
 os.chdir(os.getcwd())
 
 #bot開始時の処理
@@ -88,7 +84,7 @@ async def on_message(message:discord.Message):
         after_channel= bot.get_channel(channel2)#送信先のチャンネルIDを取得
         before_channel = bot.get_channel(channel1)#送信元のチャンネルIDを取得
         server_icon = message.guild.icon #送信元のサーバーアイコンを取得
-        embed_forward = discord.Embed(title='メッセージ転送',colour=discord.Colour.from_rgb(int(rgb_result[0]),int(rgb_result[1]),int(rgb_result[2])))
+        embed_forward = discord.Embed(title='～メッセージ転送～',colour=discord.Colour.from_rgb(int(rgb_result[0]),int(rgb_result[1]),int(rgb_result[2])))
         embed_forward.set_author(name=message.author.display_name,icon_url=message.author.avatar)
         embed_forward.add_field(name='メッセージ内容',value=message.content,inline=False)
         embed_forward.add_field(name='送信時間',value=f"{now:%Y-%m-%d %H:%M:%S}")
@@ -109,7 +105,7 @@ async def on_message(message:discord.Message):
         before_channel = bot.get_channel(channel2)#送信元のチャンネルIDを取得
         server_icon = message.guild.icon #送信元のサーバーアイコンを取得
 
-        embed_forward=discord.Embed(title='メッセージ転送',colour=discord.Colour.from_rgb(int(rgb_result[0]),int(rgb_result[1]),int(rgb_result[2])))
+        embed_forward=discord.Embed(title='～メッセージ転送～',colour=discord.Colour.from_rgb(int(rgb_result[0]),int(rgb_result[1]),int(rgb_result[2])))
         embed_forward.set_author(name=message.author.display_name,icon_url=message.author.avatar)
         embed_forward.add_field(name='メッセージ内容',value=message.content,inline=False)
         embed_forward.add_field(name='送信時間',value=f"{now:%Y-%m-%d %H:%M:%S}")
@@ -125,18 +121,19 @@ async def on_message(message:discord.Message):
             await before_channel.send(embed=embed_forward)
     await bot.process_commands(message) #on_message と commandsの共存させる
 
-@bot.slash_command(name='inquiry_setting',description='このコマンドは、お問い合わせ先のユーザーを誰にするか決めることができます。',guild_ids=[807953798894714960])
+@bot.slash_command(name='inquiry_setting',description='このコマンドはお問い合わせ先のユーザーを誰にするか決めることができます。（※管理者権限がないと実行できません）',guild_ids=[807953798894714960])
 @commands.has_permissions(administrator = True)
 async def slash_command_inquirysetting(ctx,who:discord.Option(discord.Member,'お問い合わせ先のユーザーを選択',Required=True)):
     user_id = who.id            #userID取得
-    guild_id = ctx.author.id    #guildID取得
+    guild_id = ctx.guild.id    #guildID取得
     #dbに登録
     id_db.inquiry_set(guild=guild_id,user=user_id)
     #確認のembedを送信
-    inquiry_setting_embed=discord.Embed(title='お問い合わせフォーム設定',description='お問い合わせ先のユーザーを以下のユーザーに設定します。',color=discord.Colour.from_rgb(r=int(rgb_result[0]),g=int(rgb_result[1]),b=int(rgb_result[2])))
-    inquiry_setting_embed.add_field(name='ユーザー名',value=who.name,inline=True)
-    inquiry_setting_embed.add_field(name='ユーザーID',value=who.id,inline=True)
-    inquiry_setting_embed.add_field(name='送信時間',value=f"{now:%Y-%m-%d %H:%M:%S}",inline=False)
+    inquiry_setting_embed=discord.Embed(title='～お問い合わせ設定～',description='お問い合わせ先のユーザーを以下のユーザーに設定します。',color=discord.Colour.from_rgb(r=int(rgb_result[0]),g=int(rgb_result[1]),b=int(rgb_result[2])))
+    inquiry_setting_embed.add_field(name='ユーザー名',value=who.mention,inline=True)
+    inquiry_setting_embed.add_field(name='送信時間',value=f"{now:%Y-%m-%d %H:%M:%S}",inline=True)
+    inquiry_setting_embed.add_field(name='ユーザーID',value=who.id,inline=False)
+    inquiry_setting_embed.add_field(name='サーバーID（ギルドID）',value=guild_id,inline=True)
     inquiry_setting_embed.set_thumbnail(url=who.avatar)
     #サーバー画像の設定有無判定
     try:
@@ -147,11 +144,33 @@ async def slash_command_inquirysetting(ctx,who:discord.Option(discord.Member,'�
         inquiry_setting_embed.set_footer(text=ctx.guild.name)
         await ctx.respond(embed=inquiry_setting_embed)
 
-
-
-@bot.slash_command(name='inquiry',description='このコマンドは「inquiry_setting」で決めたユーザーに対してお問い合わせすることができます。',guild_ids=[807953798894714960])
-async def slash_command_inquiry(ctx,send):
-    pass
+@bot.slash_command(name='inquiry',description='このコマンドではサーバー管理者にお問い合わせすることができます。',guild_ids=[807953798894714960])
+async def slash_command_inquiry(ctx,send_content):
+    guild_id=ctx.guild.id
+    try:
+        user=bot.get_user(id_db.inquiry_return(guild=guild_id))
+        server_name=ctx.guild.name
+        #↓「inquiry_setting」の設定したユーザに対してのembed
+        inq_ad_res=discord.Embed(title='～お問い合わせ～',description=f'{server_name}のサーバーにてお問い合わせがありました。内容は以下の通りです。',color=discord.Colour.from_rgb(r=int(rgb_result[0]),g=int(rgb_result[1]),b=int(rgb_result[2])))
+        inq_ad_res.add_field(name='お問い合わせ内容',value=send_content,inline=False)
+        inq_ad_res.add_field(name='送信者',value=user.mention,inline=True)
+        inq_ad_res.add_field(name='送信元サーバー',value=server_name,inline=True)
+        await user.send(embed=inq_ad_res)
+        #↓送信元のサーバに確認用のembed
+        inq_check_embed=discord.Embed(title='～お問い合わせ～',description='お問い合わせが完了しました。返信をお待ちください。',color=discord.Colour.from_rgb(int(rgb_result[0]),int(rgb_result[1]),int(rgb_result[2])))
+        inq_check_embed.add_field(name='送信時間',value=f"{now:%Y-%m-%d %H:%M:%S}",inline=True)
+        #サーバー画像の設定有無判定
+        try:
+            server_icon = ctx.guild.icon
+            inq_check_embed.set_footer(text=ctx.guild.name,icon_url=server_icon)
+            await ctx.respond(embed=inq_check_embed)
+        except:
+            inq_check_embed.set_footer(text=ctx.guild.name)
+            await ctx.respond(embed=inq_check_embed)
+    except Exception as e:
+        inq_err_res=discord.Embed(title='エラーが発生しました…',description='もう一度正しく入力されているかを確認ください。')
+        inq_err_res.add_field(name='エラー内容',value=e)
+        await ctx.respond(embed=inq_err_res)
 
 '''
 @bot.slash_command(name="chsetup", description="This command is a command to set the channel for message forwarding.", guild_ids=[807953798894714960])
