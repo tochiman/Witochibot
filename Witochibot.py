@@ -50,6 +50,7 @@ os.chdir(os.getcwd())
 @bot.event
 async def on_ready():
     print('----------starting bot----------')
+    print(discord.__cached__)
 
 #イベントリスナー（on_message)の処理
 @bot.event
@@ -127,25 +128,30 @@ async def slash_command_inquirysetting(ctx,who:discord.Option(discord.Member,'�
     user_id = who.id            #userID取得
     guild_id = ctx.guild.id    #guildID取得
     #dbに登録
-    id_db.inquiry_set(guild=guild_id,user=user_id)
-    #確認のembedを送信
-    inquiry_setting_embed=discord.Embed(title='～お問い合わせ設定～',description='お問い合わせ先のユーザーを以下のユーザーに設定します。',color=discord.Colour.from_rgb(r=int(rgb_result[0]),g=int(rgb_result[1]),b=int(rgb_result[2])))
-    inquiry_setting_embed.add_field(name='ユーザー名',value=who.mention,inline=True)
-    inquiry_setting_embed.add_field(name='送信時間',value=f"{now:%Y-%m-%d %H:%M:%S}",inline=True)
-    inquiry_setting_embed.add_field(name='ユーザーID',value=who.id,inline=False)
-    inquiry_setting_embed.add_field(name='サーバーID（ギルドID）',value=guild_id,inline=True)
-    inquiry_setting_embed.set_thumbnail(url=who.avatar)
-    #サーバー画像の設定有無判定
-    try:
-        server_icon = ctx.guild.icon
-        inquiry_setting_embed.set_footer(text=ctx.guild.name,icon_url=server_icon)
-        await ctx.respond(embed=inquiry_setting_embed)
-    except:
-        inquiry_setting_embed.set_footer(text=ctx.guild.name)
-        await ctx.respond(embed=inquiry_setting_embed)
+    entry_check=id_db.inquiry_set(guild=guild_id,user=user_id)
+    if entry_check != False:
+        inquiry_bad_embed=discord.Embed(title='～お問い合わせ（エラー）～',description='お問い合わせユーザーが設定されていないかもしくは重複して設定されています。ユーザーを登録するか、登録者名を変更してください',color=discord.Colour.from_rgb(r=int(rgb_result[0]),g=int(rgb_result[1]),b=int(rgb_result[2]))
+        inquiry_bad_embed.add_field()
+        await ctx.respond(embed=inquiry_bad_embed)
+    else:
+        #確認のembedを送信
+        inquiry_setting_embed=discord.Embed(title='～お問い合わせ（設定）～',description='お問い合わせ先のユーザーを以下のユーザーに設定します。',color=discord.Colour.from_rgb(int(rgb_result[0]),int(rgb_result[1]),int(rgb_result[2])))
+        inquiry_setting_embed.add_field(name='ユーザー名',value=who.mention,inline=True)
+        inquiry_setting_embed.add_field(name='送信時間',value=f"{now:%Y-%m-%d %H:%M:%S}",inline=True)
+        inquiry_setting_embed.add_field(name='ユーザーID',value=who.id,inline=False)
+        inquiry_setting_embed.add_field(name='サーバーID（ギルドID）',value=guild_id,inline=True)
+        inquiry_setting_embed.set_thumbnail(url=who.avatar)
+        #サーバー画像の設定有無判定
+        try:
+            server_icon = ctx.guild.icon
+            inquiry_setting_embed.set_footer(text=ctx.guild.name,icon_url=server_icon)
+            await ctx.respond(embed=inquiry_setting_embed)
+        except:
+            inquiry_setting_embed.set_footer(text=ctx.guild.name)
+            await ctx.respond(embed=inquiry_setting_embed)
 
-@bot.slash_command(name='inquiry',description='このコマンドではサーバー管理者にお問い合わせすることができます。',guild_ids=[807953798894714960])
-async def slash_command_inquiry(ctx,send_content):
+@bot.slash_command(name='inquiry_send',description='このコマンドではサーバー管理者にお問い合わせすることができます。',guild_ids=[807953798894714960])
+async def slash_command_inquirysend(ctx,send_content):
     guild_id=ctx.guild.id
     try:
         user=bot.get_user(id_db.inquiry_return(guild=guild_id))
@@ -172,24 +178,25 @@ async def slash_command_inquiry(ctx,send_content):
         inq_err_res.add_field(name='エラー内容',value=e)
         await ctx.respond(embed=inq_err_res)
 
-'''
-@bot.slash_command(name="chsetup", description="This command is a command to set the channel for message forwarding.", guild_ids=[807953798894714960])
-async def ch_setup(ctx, sender:discord.Option(discord.TextChannel, "Source Channel ID", required=True), destination:discord.Option(discord.TextChannel,'Destination channel ID',required=True)):#, default=None, choices=["1","2","いっぱい"]
+@bot.slash_command(name="chsetup", description="このコマンドはメッセージを転送するチャンネルを設定するものです。", guild_ids=[807953798894714960])
+async def ch_setup(ctx, channel1:discord.Option(discord.TextChannel, "チャンネルを選択してください", required=True), channel2:discord.Option(discord.TextChannel,'チャンネルを選択してください',required=True)):#, default=None, choices=["1","2","いっぱい"]
     send_author_channel_id = ctx.channel.id  #送信者のチャンネルID取得
     send_author_channel_id = bot.get_channel(send_author_channel_id)
-    server_icon = ctx.guild.icon            #送信元のサーバーアイコンを取得
-    Source_Channel_ID = sender.id             #送信元のIDを変数に格納
-    Destination_Channel_ID = destination.id    #送信先のIDを変数に格納
-    
-    #セットアップの確認情報のEmbed
-    channel_setup_embed = discord.Embed(title='Check setup information',description='The setup contents are as follows',colour=discord.Colour.from_rgb(int(rgb_result[0]),int(rgb_result[1]),int(rgb_result[2])))
-    channel_setup_embed.add_field(name='Source Channel ID',value=Source_Channel_ID,inline=True)
-    channel_setup_embed.add_field(name='Destination Channel ID',value=Destination_Channel_ID,inline=True)
-    channel_setup_embed.add_field(name='Send time',value=datetime.datetime.now())
-    await send_author_channel_id.respond(embed=channel_setup_embed)
+    Channel1_ID = channel1.id               #送信元のIDを変数に格納
+    Channel2_ID = channel2.id               #送信先のIDを変数に格納
+    Channel1_name = channel1.name
+    Channel2_name = channel2.name
+    id_db.forwarding_channel_set(channel1=Channel1_ID,channel2=Channel2_ID)
 
-    db_cursor.forwarding_channel_set(channel1=Source_Channel_ID,channel2=Destination_Channel_ID)
-'''
+    #セットアップの確認情報のEmbed
+    channel_setup_embed = discord.Embed(title='メッセージ転送（設定）',description='メッセージを転送するチャンネルを以下のように設定しました。',colour=discord.Colour.from_rgb(int(rgb_result[0]),int(rgb_result[1]),int(rgb_result[2])))
+    channel_setup_embed.add_field(name='Channel1 ID',value=Channel1_ID,inline=True)
+    channel_setup_embed.add_field(name='Channel2 ID',value=Channel2_ID,inline=False)
+    channel_setup_embed.add_field(name='Channel1 name',value=Channel1_name,inline=True)
+    channel_setup_embed.add_field(name='Channel2 name',value=Channel2_name,inline=False)
+    channel_setup_embed.add_field(name='送信時間',value=f"{now:%Y-%m-%d %H:%M:%S}",inline=False)
+    await ctx.respond(embed=channel_setup_embed)
+
 bot.remove_command('help')
 
 bot.run(discord_token.token())
