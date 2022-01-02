@@ -208,12 +208,12 @@ async def slash_command_inquirysend(ctx,send_content):
         inq_ad_res.add_field(name='お問い合わせ内容',value=send_content,inline=False)
         inq_ad_res.add_field(name='送信者',value=user.mention,inline=True)
         inq_ad_res.add_field(name='送信元サーバー',value=server_name,inline=False)
-        inq_ad_res.add_field(name='お問い合わせ番号',value=inquiry_number,inline=True)
+        #inq_ad_res.add_field(name='お問い合わせ番号',value=inquiry_number,inline=True)
         await user.send(embed=inq_ad_res)
         #↓送信元のサーバに確認用のembed
         inq_check_embed=discord.Embed(title='～お問い合わせ（通知）～',description='お問い合わせが完了しました。返信をお待ちください。',color=discord.Colour.from_rgb(int(rgb_result[0]),int(rgb_result[1]),int(rgb_result[2])))
         inq_check_embed.add_field(name='送信時間',value=f"{now:%Y-%m-%d %H:%M:%S}",inline=True)
-        inq_check_embed.add_field(name='お問い合わせ番号',value=inquiry_number,inline=True)
+        #inq_check_embed.add_field(name='お問い合わせ番号',value=inquiry_number,inline=True)
         #サーバー画像の設定有無判定
         try:
             server_icon = ctx.guild.icon
@@ -231,10 +231,9 @@ async def slash_command_inquirysend(ctx,send_content):
         inq_err_res.add_field(name='エラー内容',value=e)
         await ctx.respond(embed=inq_err_res)
 
-@bot.slash_command(name='inquiry_reply',description='お問い合わせに対対して信が可能です。')
-async def inquiryreply(ctx,who:discord.Option(discord.Member,'返信相手を選択してください。',Required=True),number,send_content):
+@bot.slash_command(name='inquiry_reply',description='お問い合わせに対対して返信が可能です。')
+async def inquiryreply(ctx,who:discord.Option(discord.Member,'返信相手を選択してください。',Required=True),send_content):
     user_id=int(who.id) #送信相手のID取得
-    
     server_name=ctx.guild.name
     user = bot.get_user(user_id)
     try:
