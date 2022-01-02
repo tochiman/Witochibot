@@ -2,6 +2,8 @@ from asyncio.windows_events import NULL
 import sqlite3
 import os
 import re
+import random
+import string
 
 os.chdir("C:/Users/yuuto/OneDrive/VS_code/python/Witochibot")
 
@@ -29,6 +31,39 @@ def inquiry_return(guild) -> int:
     conn.commit()
     cur.close()
     return int(inq_return)
+
+def inquiry_update(guild,user)-> None or False:
+    cur = conn.cursor()
+    cur.execute('select * from inquiry_id where guild_id=?',(guild,))
+    if cur.fetchall() != []:
+        cur.execute('update inquiry_id set user_id=? where guild_id=?',(user,guild))
+        conn.commit()
+        cur.close()
+        return None
+    else:
+        return False
+
+'''
+#create table inquiry_num(guild_id int,user_id int,number int unique, inquiry_content string);
+def inquiry_num_set(guild,user,content) -> str:
+    cur = conn.cursor()
+    while True:
+        try:
+            inquiry_num = ''.join(random.SystemRandom().choice(string.ascii_lowercase + string.digits for _ in range(4)))
+            cur.execute('insert into inquiry_num(guild_id,user_id,number,inquiry_content) value(?,?,?,?)',(guild,user,inquiry_num,content))
+            break
+        except:
+            pass
+    conn.commit()
+    cur.close()
+    return str(inquiry_num)
+
+def inquiry_num_return(guild,user,number):
+    cur = conn.cursor()
+    cur.execute('')
+    conn.commit()
+    cur.close()
+'''
 
 #create table channel_id(id int primary key,channel1,channel2); 
 def forwarding_channel_set(channel1,channel2)-> None:
