@@ -5,6 +5,8 @@ import re
 import random
 import string
 
+from discord import channel
+
 os.chdir("C:/Users/yuuto/OneDrive/VS_code/python/Witochibot")
 
 dbname = 'id.db'
@@ -19,18 +21,23 @@ def inquiry_set(guild,user) -> None or False:
         cur.close()
         return None
     except:
+        cur.close()
         return False
 
-def inquiry_return(guild) -> int:
-    cur = conn.cursor()
-    cur.execute('select * from inquiry_id where guild_id=?',(guild,))
-    inq_return=str(cur.fetchall()).replace("[(None,","").replace(")]","")
-    inq_return=re.search(",.*",inq_return)
-    inq_return=inq_return.group()
-    inq_return=inq_return.replace(",","")
-    conn.commit()
-    cur.close()
-    return int(inq_return)
+def inquiry_return(guild) -> int or False:
+    try:
+        cur = conn.cursor()
+        cur.execute('select * from inquiry_id where guild_id=?',(guild,))
+        inq_return=str(cur.fetchall()).replace("[(None,","").replace(")]","")
+        inq_return=re.search(",.*",inq_return)
+        inq_return=inq_return.group()
+        inq_return=inq_return.replace(",","")
+        conn.commit()
+        cur.close()
+        return int(inq_return)
+    except:
+        cur.close()
+        return False
 
 def inquiry_update(guild,user)-> None or False:
     cur = conn.cursor()
@@ -41,6 +48,7 @@ def inquiry_update(guild,user)-> None or False:
         cur.close()
         return None
     else:
+        cur.close()
         return False
 
 '''
@@ -65,17 +73,34 @@ def inquiry_num_return(guild,user,number):
     cur.close()
 '''
 
-#create table channel_id(id int primary key,channel1,channel2); 
-def forwarding_channel_set(channel1,channel2)-> None:
+#create table channel_id(id int primary key, guild_id int ,channel1 int unique,channel2 int unique);
+def forwarding_channel_set(guild,channel1,channel2)-> None or False:
     cur = conn.cursor()
-    cur.execute('insert into channel_id(channel1, channel2) values(?,?)',(channel1,channel2,))
-    conn.commit()
-    cur.close()
-    return None
+    try:
+        cur.execute('insert into channel_id(guild_id,channel1, channel2) values(?,?,?)',(guild,channel1,channel2,))
+        conn.commit()
+        cur.close()
+        return None
+    except:
+        cur.close()
+        return False
 
-def forwarding_channel_return()-> int:
+def forwarding_channel_return(guild)-> int:
     cur = conn.cursor()
-    cur.execute('select * from url')
+    cur.execute('select * from channel_id where guild_id=?',(guild,))
+    channel_return_id = cur.fetchall()
+    print(channel_return_id)
     conn.commit()
     cur.close()
-    return int()
+    return int(channel_return_id)
+
+def forwarding_channel_del(channel1,channel2) -> None:
+    try:
+        cur = conn.cursor()
+        cur.execute('delete from channel_id where channel1=? and channel2=?',(channel1,channel2,))
+        conn.commit()
+        cur.close()
+        return None
+    except:
+        cur.close()
+        return False
