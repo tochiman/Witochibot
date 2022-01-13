@@ -60,12 +60,15 @@ async def on_ready():
 #イベントリスナー（on_message)の処理
 @bot.event
 async def on_message(message:discord.Message):
-    guild_id = message.guild.id
-    ch_return = id_db.forwarding_channel_return(guild=guild_id)
-    print(ch_return)
-    channel1 = 818081875083526154
-    channel2 = 919061823519617034
-
+    #guild_id = message.guild.id
+    #ch_return = id_db.forwarding_channel_return(guild=guild_id)
+    #channel1 = int(ch_return[0])
+    #channel2 = int(ch_return[1])
+    match_id = message.channel.id
+    #print(channel1)
+    #print(channel2)
+    channel1 = 925429318904070165
+    channel2 = 930109776568942624
     #ランダムなrgb値返す関数
     def random_rgb():
         import random
@@ -88,7 +91,7 @@ async def on_message(message:discord.Message):
     if message.author.bot:
         return None
 
-    if message.channel.id == channel1:
+    if match_id == channel1:
         await message.delete() #送信されたメッセージを削除
         after_channel= bot.get_channel(channel2)#送信先のチャンネルIDを取得
         before_channel = bot.get_channel(channel1)#送信元のチャンネルIDを取得
@@ -107,7 +110,7 @@ async def on_message(message:discord.Message):
             await after_channel.send(embed=embed_forward)
             await before_channel.send(embed=embed_forward)
 
-    if message.channel.id == channel2:
+    elif match_id == channel2:
         await message.delete() #送信されたメッセージを削除
 
         after_channel = bot.get_channel(channel1)#送信先のチャンネルIDを取得
@@ -128,10 +131,22 @@ async def on_message(message:discord.Message):
             embed_forward.set_footer(text=message.guild.name)
             await after_channel.send(embed=embed_forward)
             await before_channel.send(embed=embed_forward)
+        
+    else:
+        pass
 
     await bot.process_commands(message) #on_message と commandsの共存させる
 
-@bot.slash_command(name="channel_setup", description="このコマンドはメッセージを転送するチャンネルを設定するものです。（※管理者権限がないと実行できません）", guild_ids=[807953798894714960])
+@bot.event
+async def on_command_error(ctx,error):
+    if isinstance(error,commands.errors.MissingPermissions):
+        embed_command_error = discord.Embed(title='権限エラー',description='このコマンドを実行する権限がありません。',color=discord.Colour.from_rgb(r=int(rgb_result[0]),g=int(rgb_result[1]),b=int(rgb_result[2])))
+        await ctx.send(embed=embed_command_error)
+    else:
+        raise error
+
+'''
+@bot.slash_command(name="channel_setup", description="このコマンドはメッセージを別のサーバーへ転送するチャンネルを設定するものです。（※管理者権限がないと実行できません）", guild_ids=[807953798894714960])
 @commands.has_permissions(administrator = True)
 async def ch_setup(ctx, channel1:discord.Option(discord.TextChannel, "チャンネルを選択してください", required=True), channel2:discord.Option(discord.TextChannel,'チャンネルを選択してください',required=True)):#, default=None, choices=["1","2","いっぱい"]
     send_author_channel_id = ctx.channel.id  #送信者のチャンネルID取得
@@ -190,6 +205,7 @@ async def ch_del(ctx,channel1:discord.Option(discord.TextChannel,'チャンネ�
         except:
             channel_delete_embed.set_footer(text=ctx.guild.name)
             await ctx.respond(embed=channel_delete_embed)
+'''
 
 @bot.slash_command(name='inquiry_setting',description='このコマンドはお問い合わせ先のユーザーを誰にするか決めることができます。（※管理者権限がないと実行できません）', guild_ids=[807953798894714960])
 @commands.has_permissions(administrator = True)
@@ -351,79 +367,91 @@ async def inquirycheck(ctx):
     await ctx.respond(embed=inq_check_embed)
 
 @bot.slash_command(name='server',description='このコマンドはサーバーの管理をするものです。（※管理者権限がないと実行できません）',hidden=True, guild_ids=[807953798894714960])
-@commands.has_permissions(ban_members = True)
+@commands.bot_has_permissions(ban_members = True)
 @commands.bot_has_permissions(administrator=True)
 async def server(ctx, what : discord.Option(str, '何を実行しますか。', choices=["kick", "ban", "unban"], required=True),do : discord.Option(discord.Member, 'だれに実行しますか？', required=True), reason : discord.Option(str, '理由を書いてください。（必須ではないです）', required=False)):
-    if what == 'kick':
-        await do.kick(reason=reason)
-        user_id = int(do.id) #ユーザーID取得
-        user = bot.get_user(user_id)
-        kick_embed = discord.Embed(title='あなたはサーバーからキックされました。')
-        kick_embed.add_field(name='キックされたサーバー',value=ctx.guild.name,inline=False)
-        kick_embed.add_field(name='理由',value=reason)
-        await user.send(embed=kick_embed)
+    try:
+        if what == 'kick':
+            user_id = int(do.id) #ユーザーID取得
+            user = bot.get_user(user_id)
+            kick_embed = discord.Embed(title='あなたはサーバーからキックされました。')
+            kick_embed.add_field(name='キックされたサーバー',value=ctx.guild.name,inline=False)
+            kick_embed.add_field(name='理由',value=reason)
+            await user.send(embed=kick_embed)
 
-        kick_exe_embed = discord.Embed(title='サーバー管理（キック）',description='以下のユーザーをサーバーからキックしました。',color=discord.Colour.from_rgb(r=int(rgb_result[0]),g=int(rgb_result[1]),b=int(rgb_result[2])))
-        kick_exe_embed.add_field(name='キックした人',value=do.display_name,inline=True)
-        kick_exe_embed.add_field(name='送信時間',value=f'{now:%Y-%m-%d %H:%M:%S}',inline=False)
-        #サーバー画像の設定有無判定
-        try:
-            server_icon = ctx.guild.icon
-            server_name = ctx.guild.name
-            kick_exe_embed.set_footer(text=server_name,icon_url=server_icon)
-            await ctx.respond(embed=kick_exe_embed)
-        except:
-            kick_exe_embed.set_footer(text=ctx.guild.name)
-            await ctx.respond(embed=kick_exe_embed)
+            await do.kick(reason=reason) #kick実行
 
-'''
-    elif what == 'ban':
-        user_id = do.id #ユーザーID取得
-        user=bot.get_user(user_id)
-        ban_embed = discord.Embed(title='あなたはサーバーからBANされました。')
-        ban_embed.add_field(name='BANされたサーバー',value=ctx.guild.name,inline=False)
-        ban_embed.add_field(name='理由',value=reason)
-        await user.send(embed=ban_embed)
-        if reason != None:
-            await do.ban(reason=reason)
-        else:
-            await do.ban(reason=None)
-        ban_exe_embed = discord.Embed(title='サーバー管理（BAN）',description='以下のユーザーをサーバーからBANしました。',color=discord.Colour.from_rgb(r=int(rgb_result[0]),g=int(rgb_result[1]),b=int(rgb_result[2])))
-        ban_exe_embed.add_field(name='BANされた人',value=do.display_name,inline=True)
-        ban_exe_embed.add_field(name='送信時間',value=f'{now:%Y-%m-%d %H:%M:%S}',inline=False)
+            kick_exe_embed = discord.Embed(title='サーバー管理（キック）',description='以下のユーザーをサーバーからキックしました。',color=discord.Colour.from_rgb(r=int(rgb_result[0]),g=int(rgb_result[1]),b=int(rgb_result[2])))
+            kick_exe_embed.add_field(name='キックした人',value=do.mention,inline=True)
+            kick_exe_embed.add_field(name='送信時間',value=f'{now:%Y-%m-%d %H:%M:%S}',inline=False)
+            kick_exe_embed.set_thumbnail(url=user.avatar)
+            #サーバー画像の設定有無判定
+            try:
+                server_icon = ctx.guild.icon
+                server_name = ctx.guild.name
+                kick_exe_embed.set_footer(text=server_name,icon_url=server_icon)
+                await ctx.respond(embed=kick_exe_embed)
+            except:
+                kick_exe_embed.set_footer(text=ctx.guild.name)
+                await ctx.respond(embed=kick_exe_embed)
+
+        elif what == 'ban':
+            user_id = do.id #ユーザーID取得
+            user=bot.get_user(user_id)
+            ban_embed = discord.Embed(title='あなたはサーバーからBANされました。')
+            ban_embed.add_field(name='BANされたサーバー',value=ctx.guild.name,inline=False)
+            ban_embed.add_field(name='理由',value=reason)
+            await user.send(embed=ban_embed)
+            
+            await do.ban(reason=reason) #ban実行
+
+            ban_exe_embed = discord.Embed(title='サーバー管理（BAN）',description='以下のユーザーをサーバーからBANしました。',color=discord.Colour.from_rgb(r=int(rgb_result[0]),g=int(rgb_result[1]),b=int(rgb_result[2])))
+            ban_exe_embed.add_field(name='BANされた人',value=do.mention,inline=True)
+            ban_exe_embed.add_field(name='送信時間',value=f'{now:%Y-%m-%d %H:%M:%S}',inline=False)
+            ban_exe_embed.set_thumbnail(url=user.avatar)
+            #サーバー画像の設定有無判定
+            try:
+                server_icon = ctx.guild.icon
+                server_name = ctx.guild.name
+                ban_exe_embed.set_footer(text=server_name,icon_url=server_icon)
+                await ctx.respond(embed=ban_exe_embed)
+            except:
+                ban_exe_embed.set_footer(text=ctx.guild.name)
+                await ctx.respond(embed=ban_exe_embed)
+
+        elif what == 'unban':
+            user_id = do.id #ユーザーID取得
+            user=bot.get_user(user_id)
+
+            user = discord.utils.find(lambda banentry: user == banentry.user.name, await message.guild.bans()).user
+            await user.unban()
+
+            unban_exe_embed=discord.Embed(title="サーバー管理（UnBAN)", description='以下のユーザーのBANを解除しました。',color=discord.Colour.from_rgb(r=int(rgb_result[0]),g=int(rgb_result[1]),b=int(rgb_result[2])))
+            unban_exe_embed.set_thumbnail(url=user.avatar_url)
+            unban_exe_embed.add_field(name="対象", value=user, inline=False)
+            unban_exe_embed.add_field(name='送信時間',value=f'{now:%Y-%m-%d %H:%M:%S}',inline=False)
+            await message.channel.send(embed=unban_exe_embed)
+            #サーバー画像の設定有無判定
+            try:
+                server_icon = ctx.guild.icon
+                server_name = ctx.guild.name
+                unban_exe_embed.set_footer(text=server_name,icon_url=server_icon)
+                await ctx.respond(embed=unban_exe_embed)
+            except:
+                unban_exe_embed.set_footer(text=ctx.guild.name)
+                await ctx.respond(embed=unban_exe_embed)
+    except Exception as e:
+        server_err_embed = discord.Embed(title='サーバー管理（エラー）', description=e, color=discord.Colour.from_rgb(r=int(rgb_result[0]),g=int(rgb_result[1]),b=int(rgb_result[2])))
         #サーバー画像の設定有無判定
         try:
             server_icon = ctx.guild.icon
             server_name = ctx.guild.name
-            ban_exe_embed.set_footer(text=server_name,icon_url=server_icon)
-            await ctx.respond(embed=ban_exe_embed)
+            server_err_embed.set_footer(text=server_name,icon_url=server_icon)
+            await ctx.respond(embed=server_err_embed)
         except:
-            ban_exe_embed.set_footer(text=ctx.guild.name)
-            await ctx.respond(embed=ban_exe_embed)
-    elif what == 'unban':
-        user_id = do.id #ユーザーID取得
-        user=bot.get_user(user_id)
-        kick_embed = discord.Embed(title='あなたはサーバーからキックされました。')
-        kick_embed.add_field(name='キックされたサーバー',value=ctx.guild.name,inline=False)
-        kick_embed.add_field(name='理由',value=reason.content)
-        await user.send(embed=kick_embed)
-        if reason != None:
-            await user.kick(reason=reason)
-        else:
-            await user.kick(reason=None)
-        kick_exe_embed = discord.Embed(title='サーバー管理（キック）',description='以下のユーザーをサーバーからキックしました。',color=discord.Colour.from_rgb(r=int(rgb_result[0]),g=int(rgb_result[1]),b=int(rgb_result[2])))
-        kick_exe_embed.add_field(name='キックされた人',value=do.display_name,inline=True)
-        kick_exe_embed.add_field(name='送信時間',value=f'{now:%Y-%m-%d %H:%M:%S}',inline=False)
-        #サーバー画像の設定有無判定
-        try:
-            server_icon = ctx.guild.icon
-            server_name = ctx.guild.name
-            kick_exe_embed.set_footer(text=server_name,icon_url=server_icon)
-            await ctx.respond(embed=kick_exe_embed)
-        except:
-            kick_exe_embed.set_footer(text=ctx.guild.name)
-            await ctx.respond(embed=kick_exe_embed)
-'''
+            server_err_embed.set_footer(text=ctx.guild.name)
+            await ctx.respond(embed=server_err_embed)
+
 
 bot.remove_command('help')
 bot.run(discord_token.token())
